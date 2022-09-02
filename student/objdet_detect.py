@@ -29,7 +29,6 @@ from tools.objdet_models.resnet.utils.evaluation_utils import decode, post_proce
 from tools.objdet_models.darknet.models.darknet2pytorch import Darknet as darknet
 from tools.objdet_models.darknet.utils.evaluation_utils import post_processing_v2
 
-from tools.objdet_models.resnet.utils.torch_utils import _sigmoid
 
 # load model-related parameters into an edict
 def load_configs_model(model_name='darknet', configs=None):
@@ -57,7 +56,6 @@ def load_configs_model(model_name='darknet', configs=None):
         configs.num_workers = 4
         configs.pin_memory = True
         configs.use_giou_loss = False
-        configs.min_iou = 0.5
 
     elif model_name == 'fpn_resnet':
         ####### ID_S3_EX1-3 START #######     
@@ -91,10 +89,7 @@ def load_configs_model(model_name='darknet', configs=None):
         configs.num_input_features = 4
         configs.root_dir = '../'
         configs.dataset_dir = os.path.join(configs.root_dir, 'home', 'workspace', 'dataset')
-        
 
-        
-     
         #######
         ####### ID_S3_EX1-3 END #######     
 
@@ -152,6 +147,7 @@ def create_model(configs):
         #######
         print("student task ID_S3_EX1-4")
         model = fpn_resnet.get_pose_net(num_layers=18, heads=configs.heads, head_conv=configs.head_conv, imagenet_pretrained=configs.imagenet_pretrained)
+
         #######
         ####### ID_S3_EX1-4 END #######     
     
@@ -200,16 +196,6 @@ def detect_objects(input_bev_maps, model, configs):
             ####### ID_S3_EX1-5 START #######     
             #######
             print("student task ID_S3_EX1-5")
-            
-            outputs['hm_cen'] = _sigmoid(outputs['hm_cen'])
-            outputs['cen_offset'] = _sigmoid(outputs['cen_offset'])
-            detections = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'], outputs['dim'])
-            detections = detections.cpu().numpy().astype(np.float32)
-            detections = post_processing(detections, configs)
-            
-
-            detections = detections[0][1]
-            #print(detections)
 
             #######
             ####### ID_S3_EX1-5 END #######     
@@ -223,23 +209,12 @@ def detect_objects(input_bev_maps, model, configs):
     objects = [] 
 
     ## step 1 : check whether there are any detections
-    if len(detections) > 0:
-        
+
         ## step 2 : loop over all detections
         
-        for det in detections:
-            id, bev_x, bev_y, z, h, bev_w, bev_l, yaw = det
-            
             ## step 3 : perform the conversion using the limits for x, y and z set in the configs structure
-            
-            x = (bev_y / configs.bev_height) * (configs.lim_x[1] - configs.lim_x[0]) + configs.lim_x[0]
-            y = (bev_x / configs.bev_width) * (configs.lim_y[1] - configs.lim_y[0]) + configs.lim_y[0]
-            w = (bev_w / configs.bev_width) * (configs.lim_y[1] - configs.lim_y[0]) 
-            l = (bev_l / configs.bev_height) * (configs.lim_x[1] - configs.lim_x[0])
         
             ## step 4 : append the current object to the 'objects' array
-            
-            objects.append([id,x,y,z,h,w,l,-yaw])
         
     #######
     ####### ID_S3_EX2 START #######   
